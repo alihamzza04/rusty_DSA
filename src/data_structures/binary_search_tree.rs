@@ -31,12 +31,10 @@ impl<T: PartialOrd + Clone> BinarySearchTree<T> {
                     } else {
                         node = node.left_child.as_ref().unwrap();
                     }
+                } else if node.right_child.is_none() {
+                    return None;
                 } else {
-                    if node.right_child.is_none() {
-                        return None;
-                    } else {
-                        node = node.right_child.as_ref().unwrap();
-                    }
+                    node = node.right_child.as_ref().unwrap();
                 }
             },
         }
@@ -59,19 +57,44 @@ impl<T: PartialOrd + Clone> BinarySearchTree<T> {
                     } else {
                         current_node = current_node.left_child.as_mut().unwrap();
                     }
+                } else if current_node.right_child.is_none() {
+                    current_node.right_child = Some(new_node);
+                    break;
                 } else {
-                    if current_node.right_child.is_none() {
-                        current_node.right_child = Some(new_node);
-                        break;
-                    } else {
-                        current_node = current_node.right_child.as_mut().unwrap();
-                    }
+                    current_node = current_node.right_child.as_mut().unwrap();
                 }
             },
         }
     }
 
     pub fn remove(&mut self, data: T) -> Option<T> {
+        // Special case: removing the root node
+        if let Some(root_node) = self.root.as_ref() {
+            if root_node.data == data {
+                let target = self.root.take()?;
+                let target_clone = target.clone();
+                let target_data = target.data;
+
+                return match (target.left_child, target.right_child) {
+                    (None, None) => Some(target_data), // Root was the only node
+                    (Some(left_child), None) => {
+                        self.root = Some(left_child);
+                        Some(target_data)
+                    }
+                    (None, Some(right_child)) => {
+                        self.root = Some(right_child);
+                        Some(target_data)
+                    }
+                    (Some(_left_child), Some(right_child)) => {
+                        // Find successor from right subtree
+                        let successor_node = Self::find_successor_node(*target_clone, right_child);
+                        self.root = Some(successor_node);
+                        Some(target_data)
+                    }
+                };
+            }
+        }
+
         let pair = match self.root.as_mut() {
             None => None,
             Some(mut node) => loop {
@@ -83,14 +106,12 @@ impl<T: PartialOrd + Clone> BinarySearchTree<T> {
                     } else {
                         node = node.left_child.as_mut().unwrap();
                     }
+                } else if node.right_child.is_none() {
+                    break None;
+                } else if node.right_child.as_ref().unwrap().data == data {
+                    break Some((node, "right"));
                 } else {
-                    if node.right_child.is_none() {
-                        break None;
-                    } else if node.right_child.as_ref().unwrap().data == data {
-                        break Some((node, "right"));
-                    } else {
-                        node = node.right_child.as_mut().unwrap();
-                    }
+                    node = node.right_child.as_mut().unwrap();
                 }
             },
         };
@@ -161,7 +182,7 @@ impl<T: PartialOrd + Clone> BinarySearchTree<T> {
                 }
                 return new_target;
             } else {
-                new_target_child = &new_target_child.left_child.as_ref().unwrap();
+                new_target_child = new_target_child.left_child.as_ref().unwrap();
             }
         }
     }
@@ -241,7 +262,7 @@ mod tests {
         assert!(bst.search(1.5_f64).is_some());
         assert!(bst.search(2.3_f64).is_some());
         assert!(bst.search(0.7_f64).is_some());
-        assert!(bst.search(3.14_f64).is_none());
+        assert!(bst.search(std::f64::consts::PI).is_none());
     }
 
     #[test]
@@ -375,22 +396,22 @@ mod tests {
         }
     }
 
-    // TODO: Resolve lasting problem of data the structure: remove root capability
-    // #[test]
-    // fn remove_root() {
-    //     let mut bst = BinarySearchTree::new();
-    //     bst.insert(15);
-    //     bst.insert(10);
-    //     bst.insert(20);
-    //     bst.insert(25);
+    // Tests removing the root node with various child configurations
+    #[test]
+    fn remove_root() {
+        let mut bst = BinarySearchTree::new();
+        bst.insert(15);
+        bst.insert(10);
+        bst.insert(20);
+        bst.insert(25);
 
-    //     assert_eq!(bst.remove(15), Some(15));
-    //     assert!(bst.search(15).is_none());
-    //     assert!(bst.search(10).is_some());
-    //     assert!(bst.search(20).is_some());
-    //     assert!(bst.search(25).is_some());
+        assert_eq!(bst.remove(15), Some(15));
+        assert!(bst.search(15).is_none());
+        assert!(bst.search(10).is_some());
+        assert!(bst.search(20).is_some());
+        assert!(bst.search(25).is_some());
 
-    //     // Optionally check the new root if necessary
-    //     // assert_eq!(bst.root.as_ref().unwrap().data, <expected new root value>);
-    // }
+        // Optionally check the new root if necessary
+        assert_eq!(bst.root.as_ref().unwrap().data, 20);
+    }
 }
