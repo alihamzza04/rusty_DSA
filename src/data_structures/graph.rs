@@ -96,12 +96,10 @@ impl<T: PartialEq + Eq + Hash + Copy + std::fmt::Debug> Graph<T> {
     pub fn traversal(&self, start_vertex_value: T, kind: &str) -> Vec<T> {
         let mut visited_vertices: HashMap<usize, bool> = HashMap::new();
 
-        if kind == "bft" {
-            Self::breath_first_traversal(self, start_vertex_value, &mut visited_vertices)
-        } else if kind == "dft" {
-            Self::depth_first_traversal(self, start_vertex_value, &mut visited_vertices)
-        } else {
-            panic!("Pick between bft(breath-first traversal) and dft(depth-first traversal)")
+        match kind {
+            "bft" => Self::breath_first_traversal(self, start_vertex_value, &mut visited_vertices),
+            "dft" => Self::depth_first_traversal(self, start_vertex_value, &mut visited_vertices),
+            _ => panic!("Pick between bft(breath-first traversal) and dft(depth-first traversal)"),
         }
     }
 
